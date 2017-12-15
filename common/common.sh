@@ -1,5 +1,5 @@
 #！/bin/bash
-comPath=$(cd `dirname ${BASH_SOURCE[0]}` && pwd)
+commonPath=$(cd `dirname ${BASH_SOURCE[0]}` && pwd)
 
 function lower()
 {
@@ -14,4 +14,9 @@ function upper()
 function capital()
 {
 	echo ${1^}
+}
+
+function now()
+{
+	date "+%F %T"
 }
