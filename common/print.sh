@@ -25,53 +25,58 @@ warnColor=$yellowColor
 infoColor=$blueColor
 debugColor=$whiteColor
 
-function printFatal()
+function PrintFatal()
 {
 	if [[ $printLevel -lt $fatalLevel ]];then
 		return
 	fi
-	local t=`now`
-	echo -e "$t ${fatalColor}[F] $@$resetColor"
+	Now
+	local time=$Ret
+	echo -e "$time ${fatalColor}[F] $@$resetColor"
 	exit 1
 }
 
-function printError()
+function PrintError()
 {
 	if [[ $printLevel -lt $errorLevel ]];then
 		return
 	fi
-	local t=`now`
-	echo -e "$t ${errorColor}[E] $@$resetColor"
+	Now
+	local time=$Ret
+	echo -e "$time ${errorColor}[E] $@$resetColor"
 }
 
-function printWarn()
+function PrintWarn()
 {
 	if [[ $printLevel -lt $warnLevel ]];then
 		return
 	fi
-	local t=`now`
-	echo -e "$t ${warnColor}[W] $@$resetColor"
+	Now
+	local time=$Ret
+	echo -e "$time ${warnColor}[W] $@$resetColor"
 }
 
-function printInfo()
+function PrintInfo()
 {
 	if [[ $printLevel -lt $infoLevel ]];then
 		return
 	fi
-	local t=`now`
-	echo -e "$t ${infoColor}[I] $@$resetColor"
+	Now
+	local time=$Ret
+	echo -e "$time ${infoColor}[I] $@$resetColor"
 }
 
-function printDebug()
+function PrintDebug()
 {
 	if [[ $printLevel -lt $debugLevel ]];then
 		return
 	fi
-	local t=`now`
-	echo -e "$t ${debugColor}[D] $@$resetColor"
+	Now
+	local time=$Ret
+	echo -e "$time ${debugColor}[D] $@$resetColor"
 }
 
-function setPrintLevel()
+function SetPrintLevel()
 {
 	case ${1,,} in
 		f|fatal) printLevel=$fatalLevel;;
@@ -79,6 +84,6 @@ function setPrintLevel()
 		w|warn)  printLevel=$warnLevel;;
 		i|info)  printLevel=$infoLevel;;
 		d|debug) printLevel=$debugLevel;;
-		*) printWarn "invalid print level $1";;
+		*) PrintWarn "invalid print level $1";;
 	esac
 }
