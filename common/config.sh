@@ -14,17 +14,17 @@ function LoadConfig()
 		PrintError "config file not exist"
 		return 1
 	fi
-	LineCount $file
-	local count=$Ret
+	FileLineNum $file
+	local num=$Ret
 	local i=0
 	local line=''
 	local key=''
 	local val=''
-	PrintDebug "load config: $file:$count"
-	for((i=1;i<=$count;i++))
+	PrintDebug "load config: $file:$num"
+	for((i=1;i<=$num;i++))
 	{
 		# 获取指定行
-		Line $file $i
+		FileLine $file $i
 		line="$Ret"
 		# 过滤注释
 		TrimLine "$line"
