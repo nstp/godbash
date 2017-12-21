@@ -18,28 +18,17 @@ testUsage="
 	"
 
 
-
-# 注册命令
-function RegisterCmd()
+# 重置用法
+function ResetUsage()
 {
-	Lower "$1"
-	local cmd=$Ret
-	local type=`echo "$cmd" | cut -d ':' -f 1`
-	local names=`echo "$cmd" | cut -d ':' -f 2`
-	TrimLine $type
-	type=$Ret
-	if [[ $type != names ]];then
-		PrintError "invalid command definition: $1"
-		return 1
-	fi
-	TrimLine $names
-	names=$Ret
-	if [[ -z $names ]];then
-		names=root
-	fi
-	declare -gA 
+	# 用于保存父命令名：OrdererAdd -> Orderer
+	unset cmdParent
+	declare -gA cmdParent
+	# 用于保存命令的参数名
+	unset cmdOption
+	declare -gA cmdOption
 }
-	
+
 # 注册用法
 function RegisterUsage()
 {
@@ -48,24 +37,28 @@ function RegisterUsage()
 	local num=$Ret
 	local i=0
 	local line=''
-	local type=command
+	local type=TYPE_COMMAND
+	local cmdName=''
 	for((i=1;i<=$num;i++))
 	{
 		Line "$cmd" $i
 		TrimLine "$Ret"
 		line=$Ret
-		if [ -z $line ];then
+		if [ -z "$line" ];then
 			continue
 		fi
-		if [[ $type ==  command ]];then
+		if [[ $type == TYPE_COMMAND ]];then
+			# 先注册命令
 			RegisterCommand "$line"
 			if [[ $? != 0 ]];then
 				PrintError "RegisterCommand \"$line\" failed"
 				return 1
 			fi
-			type=options
+			cmdName=$Ret
+			type=TYPE_OPTION
 		else
-			RegisterOption "$line"
+			# 再注册选项
+			RegisterOption $cmdName "$line"
 			if [[ $? != 0 ]];then
 				PrintError "RegisterOption \"$line\" failed"
 				return 1
@@ -74,19 +67,130 @@ function RegisterUsage()
 	}
 }
 
-# 解析命令行参数
-function ParseArgs()
+# 注册命令
+function RegisterCommand()
 {
+	# 先统一转成小写
+	Lower "$1"
+	local cmd=$Ret
+	local type=`echo "$cmd" | cut -d ':' -f 1`
+	local names=`echo "$cmd" | cut -d ':' -f 2`
+	# 判断类型，必须是command
+	TrimSpace $type
+	type=$Ret
+	if [[ $type != command ]];then
+		PrintError "invalid command definition: $1"
+		return 1
+	fi
+	PrintDebug "command declare line"
+	# 获取命令名，支持嵌套，根命令定义为Root
+	TrimSpace "$names"
+	names=$Ret
+	PrintDebug "names: $names"
+	local parent=Root
+	local child=''
+	local name=''
+	# 设置命令名，并为每一层命令保存父命令名
+	for name in $names;do
+		Capital $name
+		child=$child$Ret
+		cmdParent[$child]=$parent
+		parent=$child
+	done
+	# 返回当前命令名
+	Ret=$parent
+}
+
+# 解析选项
+function ParseOption()
+{
+	local option=$1
+	local type=''
+	local field=''
+	RetSets=''
+	RetName=''
+	RetInfo=''
+	RetDefault=''
+	for field in ${option//,/ };do
+		if [ -z $type ];then
+			TrimSpace $field
+			field=$Ret
+			Lower $field
+			# 设置不区分大小写
+			if [[ $Ret =~ ^-[-]?[a-z]$ ]];then
+				# 先匹配设置，接下去继续匹配设置，或者匹配变量名
+				type=TYPE_SET_OR_NAME
+				RetSets="$RetSets $Ret"
+			else
+				PrintError "invalid option definition: $option"
+				return 1
+			fi
+		elif [[ $type == TYPE_SET_OR_NAME ]];then
+			TrimSpace $field
+			field=$Ret
+			Lower $field
+			# 设置不区分大小写，变量名区分大小写
+			if [[ $Ret =~ ^-[-]?[a-z]$ ]];then
+				# 仍然匹配到设置
+				RetSets="$RetSets $Ret"
+			elif [[ $field =~ ^[a-zA-Z]$ ]];then
+				# 匹配到变量名，接下去匹配信息
+				RetName=$field
+				type=TYPE_INFO
+			else
+				PrintError "invalid option definition: $option"
+				return 1
+			fi
+		elif [[ $type == TYPE_INFO ]];then
+			TrimSpace $field
+			RetInfo=$Ret
+			type=TYPE_DEFAULT
+		elif [[ $type == TYPE_DEFAULT ]];then
+			ParseKeyVal "$field"
+			Lower $RetKey
+			if [[ -z $Ret ]];then
+				PrintDebug "option no default set"
+				return
+			fi
+			if [[ $Ret != default ]];then
+				PrintWarn "invalid option default set: $option"
+				return
+			fi
+			RetDefault=$RetVal
+			type=TYPE_NONE
+		else
+			PrintWarn "too many field in option: $option"
+		fi
+	done
+}
+
+# 注册选项
+function RegisterOption()
+{
+	local cmdName=$1
+	local option=$2
+	local type=`echo "$option" | cut -d ':' -f 1`
+	TrimSpace $type
+	Lower $Ret
+	type=$Ret
+	PrintInfo "cmd:$cmdName type:$type option:$option"
+	# 选项说明行不包含选项信息
+	if [[ $type == options ]];then
+		PrintDebug "options declare line"
+		return
+	fi
+	# 解析选项
+	ParseOption "$option"
+	if [[ $? != 0 ]];then
+		PrintError "parse option failed"
+		return 1
+	fi
+	# 设置选项信息到关联数组
 	
 }
 
-# 重置命令行参数
-function ResetArgs()
+# 解析命令行参数
+function ParseArgs()
 {
-	# 用于保存父命令名
-	unset cmdParent
-	declare -gA cmdParent
-	# 用于保存命令的参数名
-	unset cmdOption
-	declare -gA cmdOption
+	echo test
 }

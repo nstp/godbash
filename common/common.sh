@@ -85,3 +85,18 @@ function FileLine()
 	local line=$2
 	Ret=`head -n $line $file | tail -n 1`
 }
+
+# 是否包含指定值
+function Contain()
+{
+	local str=$1
+	local val=$2
+	local tmp=''
+	for tmp in $str;do
+		if [[ $val == $tmp ]];then
+			Ret=1
+			return
+		fi
+	done
+	Ret=0
+}

@@ -25,55 +25,88 @@ warnColor=$yellowColor
 infoColor=$blueColor
 debugColor=$whiteColor
 
-function PrintFatal()
+# 打印函数
+function Print()
 {
-	if [[ $printLevel -lt $fatalLevel ]];then
+	local level=''
+	local color=''
+	local tag=''
+	case ${1,,} in
+		f|fatal)
+			level=$fatalLevel
+			color=$fatalColor
+			tag=F;;
+		e|error)
+			level=$errorLevel
+			color=$errorColor
+			tag=E;;
+		w|warn)
+			level=$warnLevel
+			color=$warnColor
+			tag=W;;
+		i|info)
+			level=$infoLevel
+			color=$infoColor
+			tag=I;;
+		d|debug)
+			level=$debugLevel
+			color=$debugColor
+			tag=D;;
+		*)
+			PrintWarn "invalid print level $1"
+			return 1
+	esac
+	shift
+	# 只打印级别小于等于printLevel的消息
+	if [[ $level -gt $printLevel ]];then
 		return
 	fi
 	Now
 	local time=$Ret
-	echo -e "$time ${fatalColor}[F] $@$resetColor"
+	echo -e "$time $color[$tag] $@$resetColor"	
+}
+
+# 打印数组
+function PrintArray()
+{
+	local name=$1
+	local level=$2
+	local keys=$(eval "echo \${!$name[*]}")
+	local key=''
+	local val=''
+	for key in $keys;do
+		val=$(eval "echo \${$name[$key]}")
+		Print $level "$name[$key] = $val"
+		if [[ $? != 0 ]];then
+			return 1
+		fi
+	done
+}
+
+function PrintFatal()
+{
+	Print fatal $@
 	exit 1
 }
 
 function PrintError()
 {
-	if [[ $printLevel -lt $errorLevel ]];then
-		return
-	fi
-	Now
-	local time=$Ret
-	echo -e "$time ${errorColor}[E] $@$resetColor"
+	Print error $@
 }
 
 function PrintWarn()
 {
-	if [[ $printLevel -lt $warnLevel ]];then
-		return
-	fi
-	Now
-	local time=$Ret
-	echo -e "$time ${warnColor}[W] $@$resetColor"
+	Print warn $@
 }
 
 function PrintInfo()
 {
-	if [[ $printLevel -lt $infoLevel ]];then
-		return
-	fi
-	Now
-	local time=$Ret
-	echo -e "$time ${infoColor}[I] $@$resetColor"
+	Print info $@
 }
 
 function PrintDebug()
 {
-	if [[ $printLevel -lt $debugLevel ]];then
-		return
-	fi
-	Now
-	local time=$Ret
-	echo -e "$time ${debugColor}[D] $@$resetColor"
+	Print debug $@
 }
 
 function SetPrintLevel()
