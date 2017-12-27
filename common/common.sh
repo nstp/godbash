@@ -28,19 +28,20 @@ function Now()
 # 过滤行首行尾空白字符
 function TrimSpace()
 {
-	Ret=`echo "$1" | sed 's/^[[:space:]]*//g' | sed 's/[[:space:]]*$//g'`
+	# 为避免出现参数是-n或者-e时echo无法打印的bug，在字符串前面加个空格
+	Ret=`echo " $1" | sed 's/^[[:space:]]*//g' | sed 's/[[:space:]]*$//g'`
 }
 
 # 过滤注释
 function TrimComment()
 {
-	Ret=`echo "$1" | sed 's/#.*$//g'`
+	Ret=`echo " $1" | sed 's/#.*$//g'`
 }
 
 # 过去注释和行首行尾空白字符
 function TrimLine()
 {
-	Ret=`echo "$1" | sed 's/#.*$//g' | sed 's/^[[:space:]]*//g' | sed 's/[[:space:]]*$//g'`
+	Ret=`echo " $1" | sed 's/#.*$//g' | sed 's/^[[:space:]]*//g' | sed 's/[[:space:]]*$//g'`
 }
 
 # 从字符串格式 key=val 中解析key和val
@@ -60,7 +61,7 @@ function ParseKeyVal()
 function LineNum()
 {
 	local str=$1
-	Ret=`echo "$str" | sed -n '$='`
+	Ret=`echo " $str" | sed -n '$='`
 }
 
 # 获取字符串指定行内容
@@ -68,7 +69,7 @@ function Line()
 {
 	local str=$1
 	local line=$2
-	Ret=`echo "$str" | head -n $line | tail -n 1`
+	Ret=`echo " $str" | head -n $line | tail -n 1`
 }
 
 # 计算文件行数

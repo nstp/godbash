@@ -25,11 +25,11 @@ function ResetUsage()
 	unset cmdParent
 	declare -gA cmdParent
 	# 用于保存命令的参数名
-	unset cmdOption
-	declare -gA cmdOption
+	unset optName optInfo optDefault
+	declare -gA optName optInfo optDefault
 }
 
-# 注册用法
+# 注册用法，入参必须用引号引起来
 function RegisterUsage()
 {
 	local cmd=$1
@@ -67,7 +67,7 @@ function RegisterUsage()
 	}
 }
 
-# 注册命令
+# 注册命令，入参必须用引号引起来
 function RegisterCommand()
 {
 	# 先统一转成小写
@@ -101,7 +101,7 @@ function RegisterCommand()
 	Ret=$parent
 }
 
-# 解析选项
+# 解析选项，入参必须用引号引起来
 function ParseOption()
 {
 	local option=$1
@@ -112,17 +112,18 @@ function ParseOption()
 	RetInfo=''
 	RetDefault=''
 	for field in ${option//,/ };do
-		if [ -z $type ];then
+		PrintDebug "parse option field: $field"
+		if [[ -z $type ]];then
 			TrimSpace $field
 			field=$Ret
 			Lower $field
 			# 设置不区分大小写
-			if [[ $Ret =~ ^-[-]?[a-z]$ ]];then
+			if [[ "$Ret" =~ ^-[-]?[a-z]+$ ]];then
 				# 先匹配设置，接下去继续匹配设置，或者匹配变量名
 				type=TYPE_SET_OR_NAME
 				RetSets="$RetSets $Ret"
 			else
-				PrintError "invalid option definition: $option"
+				PrintError "invalid option set: $field"
 				return 1
 			fi
 		elif [[ $type == TYPE_SET_OR_NAME ]];then
@@ -130,15 +131,15 @@ function ParseOption()
 			field=$Ret
 			Lower $field
 			# 设置不区分大小写，变量名区分大小写
-			if [[ $Ret =~ ^-[-]?[a-z]$ ]];then
+			if [[ "$Ret" =~ ^-[-]?[a-z]+$ ]];then
 				# 仍然匹配到设置
 				RetSets="$RetSets $Ret"
-			elif [[ $field =~ ^[a-zA-Z]$ ]];then
+			elif [[ "$field" =~ ^[a-zA-Z]+$ ]];then
 				# 匹配到变量名，接下去匹配信息
 				RetName=$field
 				type=TYPE_INFO
 			else
-				PrintError "invalid option definition: $option"
+				PrintError "invalid option set or name: $field"
 				return 1
 			fi
 		elif [[ $type == TYPE_INFO ]];then
@@ -148,30 +149,30 @@ function ParseOption()
 		elif [[ $type == TYPE_DEFAULT ]];then
 			ParseKeyVal "$field"
 			Lower $RetKey
-			if [[ -z $Ret ]];then
-				PrintDebug "option no default set"
+			if [[ -z "$Ret" ]];then
+				PrintDebug "option no default"
 				return
 			fi
-			if [[ $Ret != default ]];then
-				PrintWarn "invalid option default set: $option"
+			if [[ "$Ret" != default ]];then
+				PrintWarn "invalid option default: $field"
 				return
 			fi
 			RetDefault=$RetVal
 			type=TYPE_NONE
 		else
-			PrintWarn "too many field in option: $option"
+			PrintWarn "too many field in option: $field"
 		fi
 	done
 }
 
-# 注册选项
+# 注册选项，入参必须用引号引起来
 function RegisterOption()
 {
 	local cmdName=$1
 	local option=$2
 	local type=`echo "$option" | cut -d ':' -f 1`
-	TrimSpace $type
-	Lower $Ret
+	TrimSpace "$type"
+	Lower "$Ret"
 	type=$Ret
 	PrintInfo "cmd:$cmdName type:$type option:$option"
 	# 选项说明行不包含选项信息
@@ -186,7 +187,20 @@ function RegisterOption()
 		return 1
 	fi
 	# 设置选项信息到关联数组
-	
+	local set=''
+	if [[ -n ${optInfo[$RetName]} ]];then
+		PrintError "option name $RetName duplicated"
+		return
+	fi
+	for set in $RetSets;do
+		if [[ -n ${optName[$set]} ]];then
+			PrintError "option set $set duplicated"
+			return
+		fi
+		optName[$set]=$RetName
+		optInfo[$RetName]=$RetInfo
+		optDefault[$RetName]=$RetDefault
+	done
 }
 
 # 解析命令行参数
